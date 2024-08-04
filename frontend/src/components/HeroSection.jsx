@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import endpoints from "../services/endpoints";
 import { useSelector } from "react-redux";
-import TaskDetailsPopup from "./TaskDetailsPopup"; 
+import TaskDetailsPopup from "./TaskDetailsPopup"; // Import the new component
 
 const { CREATE_TASK, GET_TASK_LIST, UPDATE_TASK, DELETE_TASK, MARK_AS_COMPLETED } = endpoints;
 
 const HeroSection = () => {
   const { user, token } = useSelector((state) => state.auth);
-  console.log(user)
+  console.log(token)
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -17,15 +17,17 @@ const HeroSection = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [editMode, setEditMode] = useState(false);
   const [editTaskId, setEditTaskId] = useState(null);
-  const [selectedTask, setSelectedTask] = useState(null); 
+  const [selectedTask, setSelectedTask] = useState(null); // State for the selected task
+  const [filter, setFilter] = useState(""); // State for filtering
+  const [sort, setSort] = useState("due_date"); // State for sorting
 
-  const fetchTaskList = async (page = 1) => {
+  const fetchTaskList = async (page = 1, filter = "", sort = "due_date") => {
     try {
       const response = await axios.get(GET_TASK_LIST, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        params: { page, limit: 20 },
+        params: { page, limit: 20, filter, sort },
       });
       const tasksWithCompletionStatus = response.data.data.tasks.map((task) => ({
         ...task,
@@ -40,28 +42,26 @@ const HeroSection = () => {
   };
 
   useEffect(() => {
-    fetchTaskList(currentPage);
-  }, [currentPage]);
+    fetchTaskList(currentPage, filter, sort);
+  }, [currentPage, filter, sort]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       if (editMode) {
-        const response = await axios.put(
+        await axios.put(
           `${UPDATE_TASK}/${editTaskId}`,
           { title, description, due_date: dueDate, created_by: user._id },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        console.log(response);
         setEditMode(false);
         setEditTaskId(null);
       } else {
-        const response = await axios.post(
+        await axios.post(
           CREATE_TASK,
           { title, description, due_date: dueDate, created_by: user._id },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        console.log(response);
       }
       setTitle("");
       setDescription("");
@@ -74,10 +74,9 @@ const HeroSection = () => {
 
   const handleDelete = async (taskId) => {
     try {
-      const response = await axios.delete(`${DELETE_TASK}/${taskId}`, {
+      await axios.delete(`${DELETE_TASK}/${taskId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(response);
       fetchTaskList();
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -94,10 +93,9 @@ const HeroSection = () => {
 
   const handleMarkAsCompleted = async (taskId) => {
     try {
-      const response = await axios.put(`${MARK_AS_COMPLETED}/${taskId}`, {}, {
+      await axios.put(`${MARK_AS_COMPLETED}/${taskId}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      console.log(response);
       setTaskList((prevTaskList) =>
         prevTaskList.map((task) =>
           task._id === taskId ? { ...task, completed: true, status: "Completed" } : task
@@ -168,7 +166,27 @@ const HeroSection = () => {
           </button>
         </form>
       </div>
-      <div className="mt-6 w-full h-auto ">
+      <div className="mt-6 w-full h-auto">
+        <div className="flex justify-between mb-4">
+          <div className="flex gap-4">
+            <input
+              type="text"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Filter by title..."
+              className="px-3 py-2 border rounded shadow-sm"
+            />
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="px-3 py-2 border rounded shadow-sm"
+            >
+              <option value="due_date">Sort based on</option>
+              <option value="title">Title</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+        </div>
         <h2 className="text-gray-700 text-lg font-semibold mb-4">Task List</h2>
         <div className="flex gap-5 flex-wrap">
           {taskList.map((task) => (
@@ -189,7 +207,10 @@ const HeroSection = () => {
               </p>
               <div className="flex justify-end mt-4">
                 <button
-                  onClick={() => handleMarkAsCompleted(task._id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMarkAsCompleted(task._id);
+                  }}
                   className={`${
                     task.completed ? "bg-gray-400" : "bg-green-500"
                   } text-white px-3 py-1 rounded ${
@@ -200,13 +221,19 @@ const HeroSection = () => {
                   {task.completed ? "Task Completed" : "Mark as Completed"}
                 </button>
                 <button
-                  onClick={() => handleEdit(task)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleEdit(task);
+                  }}
                   className="bg-blue-500 text-white px-3 py-1 rounded ml-2 hover:bg-blue-600"
                 >
                   Edit
                 </button>
                 <button
-                  onClick={() => handleDelete(task._id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(task._id);
+                  }}
                   className="bg-red-500 text-white px-3 py-1 rounded ml-2 hover:bg-red-600"
                 >
                   Delete
@@ -233,7 +260,7 @@ const HeroSection = () => {
         </div>
       </div>
       {selectedTask && (
-        <TaskDetailsPopup task={selectedTask} user={user} onClose={handleClosePopup} />
+        <TaskDetailsPopup task={selectedTask} onClose={handleClosePopup} />
       )}
     </div>
   );

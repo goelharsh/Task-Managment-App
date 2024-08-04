@@ -5,13 +5,19 @@ const helper = require("../config/api-responses");
 exports.fetchAllTasks = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 20, filter = "", sort = "due_date" } = req.query;
 
-    const taskList = await Task.find({ created_by: userId })
+    const query = { created_by: userId };
+    if (filter) {
+      query.title = new RegExp(filter, 'i'); // Case-insensitive search
+    }
+
+    const taskList = await Task.find(query)
+      .sort({ [sort]: 1 }) // 1 for ascending order
       .skip((page - 1) * limit)
       .limit(Number(limit));
 
-    const totalTasks = await Task.countDocuments({ created_by: userId });
+    const totalTasks = await Task.countDocuments(query);
 
     if (taskList.length === 0) {
       return helper.errorResponse(res, "Task list is empty");
@@ -37,7 +43,6 @@ exports.fetchAllTasks = async (req, res) => {
 exports.fetchTaskById = async (req, res) => {
   try {
     const { id } = req.params;
-    helper.logMessage(id)
     const task = await Task.findById(id);
     if (!task) {
       return helper.errorResponse(res, "No task found with related id");
@@ -67,7 +72,6 @@ exports.createNewTask = async (req, res) => {
     }
     const userId = req.user.id;
     console.log(req.user.id);
-    helper.logMessage("Printing user id", userId);
     const { title, description, status, due_date } = req.body;
     
     // Set default due date to one day from the current date if not provided

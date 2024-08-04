@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import endpoints from "../services/endpoints";
 import { toast } from "react-toastify";
 
@@ -75,7 +75,10 @@ const SignUp = () => {
             >
               Sign Up
             </button>
+            
           </div>
+          <Link to="/login" className="text-blue-500 text-center my-5">
+            <p>Already have an account?</p></Link>
         </form>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import endpoints from "../services/endpoints";
 import { toast } from "react-toastify";
 const { LOGIN_API } = endpoints;
@@ -62,6 +62,8 @@ const Login = () => {
               Login
             </button>
           </div>
+          <Link to="/signup" className="text-blue-500 text-center my-5">
+            <p>Don't have an account?</p></Link>
         </form>
       </div>
     </div>
