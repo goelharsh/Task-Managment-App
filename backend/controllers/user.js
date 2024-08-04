@@ -43,22 +43,22 @@ exports.login = async (req, res) => {
     }
     const { email, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (!existingUser) {
+    const user = await User.findOne({ email });
+    if (!user) {
       return helper.errorResponse(res, "User does not exist"); // Correct spelling
     }
-    if (await bcrypt.compare(password, existingUser.password)) {
+    if (await bcrypt.compare(password, user.password)) {
       const payload = {
-        email: existingUser.email, // Use existingUser
-        name: existingUser.name,
-        id: existingUser.id
+        email: user.email, // Use existingUser
+        name: user.name,
+        id: user.id,
       };
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
         expiresIn: "24h",
       });
 
-      existingUser.token = token; // Use existingUser
-      existingUser.password = undefined;
+      user.token = token; // Use existingUser
+      user.password = undefined;
 
       // create cookie and send response
       const options = {
@@ -68,11 +68,26 @@ exports.login = async (req, res) => {
       res.cookie("token", token, options).status(200).json({
         success: true,
         token,
-        user: existingUser, // Use existingUser in response
+        user, // Use existingUser in response
         message: "Logged in successfully",
       });
     } else {
       return helper.errorResponse(res, "Password is incorrect"); // Correct spelling
+    }
+  } catch (error) {
+    helper.logMessage(error);
+    return helper.catchErrorResponse(res, error);
+  }
+};
+
+exports.logout = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log(userId);
+    const deleteUser = await User.findByIdAndDelete(userId);
+    if (deleteUser) {
+      res.clearCookie("token");
+      return helper.successResponse(res, "Logged out successfully");
     }
   } catch (error) {
     helper.logMessage(error);

@@ -5,14 +5,26 @@ const helper = require("../config/api-responses");
 exports.fetchAllTasks = async (req, res) => {
   try {
     const userId = req.user.id;
-    const taskList = await Task.find({ created_by: userId });
-    if (taskList.length == 0) {
+    const { page = 1, limit = 10 } = req.query;
+
+    const taskList = await Task.find({ created_by: userId })
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const totalTasks = await Task.countDocuments({ created_by: userId });
+
+    if (taskList.length === 0) {
       return helper.errorResponse(res, "Task list is empty");
     } else {
       return helper.successResponseWithData(
         res,
         "Task list fetched successfully",
-        taskList
+        {
+          tasks: taskList,
+          totalTasks,
+          totalPages: Math.ceil(totalTasks / limit),
+          currentPage: page,
+        }
       );
     }
   } catch (error) {
@@ -20,6 +32,7 @@ exports.fetchAllTasks = async (req, res) => {
     return helper.catchErrorResponse(res, error);
   }
 };
+
 
 exports.fetchTaskById = async (req, res) => {
   try {
@@ -129,15 +142,38 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-
 exports.deleteTask = async (req, res) => {
   try {
-    const { taskId } = req.params;
-    const deletedTask = await Task.findByIdAndDelete(taskId);
+    const { id } = req.params;
+    const deletedTask = await Task.findByIdAndDelete(id);
     if (!deletedTask) {
       return helper.errorResponse(res, "Cannot delete task. Task not found.");
     } else {
       return helper.successResponse(res, "Task deleted successfully");
+    }
+  } catch (error) {
+    helper.logMessage(error);
+    return helper.catchErrorResponse(res, error);
+  }
+};
+
+exports.markAsCompleted = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updatedTask = await Task.findByIdAndUpdate(
+      id,
+      { status: 'Completed' },
+      { new: true }
+    );
+
+    if (!updatedTask) {
+      return helper.errorResponse(res, "Cannot update task");
+    } else {
+      return helper.successResponseWithData(
+        res,
+        "Task marked as completed successfully",
+        updatedTask
+      );
     }
   } catch (error) {
     helper.logMessage(error);

@@ -15,6 +15,9 @@ router.post('/createNewTask', authMiddleware.auth, taskController.createNewTask)
 router.put('/updateTask/:id', authMiddleware.auth, taskController.updateTask);
 
 // Delete a task by ID
-router.delete('/tasks/:id', authMiddleware.auth, taskController.deleteTask);
+router.delete('/deleteTask/:id', authMiddleware.auth, taskController.deleteTask);
+
+// Mark as completed task
+router.put('/markAsCompleted/:id', authMiddleware.auth, taskController.markAsCompleted);
 
 module.exports = router;
